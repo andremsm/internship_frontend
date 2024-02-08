@@ -17,6 +17,15 @@ export function Modal(props: CursoProps) {
 	//principalmente a classe "Modal".
 
 	const [isModal, setModal] = useState(false);
+	const [fileList, setFileList] = useState<FileList | null>(null);
+	const [hasFilesUploaded, setHasFilesUploaded] = useState(false);
+
+	const handleFileUpload = (e: any) => {
+		setFileList(e.target.files);
+		console.log(e.target.files);
+		if (e.target.files.length !== 0) setHasFilesUploaded(true);
+		else setHasFilesUploaded(false);
+	};
 
 	//Ao clicar no box, definir o modal como ativo.
 	const handleModalOpen = () => {
@@ -35,8 +44,37 @@ export function Modal(props: CursoProps) {
 		setModal(false);
 	};
 
+	const sendImages = () => {
+		console.log("sending images...");
+		if (!fileList) return;
+
+		const data = new FormData();
+		files.forEach((file, index) => {
+			data.append(`file-${index}`, file, file.name);
+		});
+
+		console.log(data);
+		console.log("fetching...");
+	};
+
 	function closeModal() {
 		setModal(false);
+	}
+
+	function hasFiles() {
+		if (hasFilesUploaded)
+			return (
+				<button
+					className="button is-info is-outlined"
+					style={{
+						whiteSpace: "pre-line",
+					}}
+					onClick={sendImages}
+				>
+					Enviar imagens
+				</button>
+			);
+		else return <div></div>;
 	}
 
 	function hasNews() {
@@ -140,6 +178,9 @@ export function Modal(props: CursoProps) {
 		else return <div></div>;
 	};
 
+	// files is not an array, but it's iterable, spread to get an array of files
+	const files = fileList ? [...fileList] : [];
+
 	return (
 		<div className="Modal">
 			<div className={`modal ${active}`}>
@@ -181,6 +222,21 @@ export function Modal(props: CursoProps) {
 						<div className="buttons is-centered">{hasNews()}</div>
 
 						<div>{props.Curso.Imagens}</div>
+
+						{/*put this part inside if_logged_in() */}
+						<div>&nbsp;</div>
+						<label htmlFor="upload-images">
+							<b>Upload de imagens&nbsp;</b>
+						</label>
+						<input
+							type="file"
+							id="upload-images"
+							multiple
+							onChange={handleFileUpload}
+						/>
+						{hasFiles()}
+						<div>&nbsp;</div>
+
 						{table()}
 					</section>
 					<footer
