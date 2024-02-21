@@ -7,18 +7,22 @@ import {
 	sizeBoxesMobile,
 	textoNoticia,
 	isNotMobile,
+	getCurrentUser,
 } from "./Utils";
 import "./LoginModal.css";
 import "./glyphs/style.css";
 import { browserName } from "react-device-detect";
+import { ModalRemoveImg } from "./ModalRemoveImg";
 
 export function Modal(props: CursoProps) {
 	//Para mais informações, ver como o as classes funcionam no site do Bulma,
 	//principalmente a classe "Modal".
 
-	const [isModal, setModal] = useState(false);
+	const [isOuterModal, setOuterModal] = useState(false);
+	const [isInnerModal, setInnerModal] = useState(false);
 	const [fileList, setFileList] = useState<FileList | null>(null);
 	const [hasFilesUploaded, setHasFilesUploaded] = useState(false);
+	const [innerModalActive, setInnerModalActive] = useState(false);
 
 	const handleFileUpload = (e: any) => {
 		setFileList(e.target.files);
@@ -28,20 +32,40 @@ export function Modal(props: CursoProps) {
 	};
 
 	//Ao clicar no box, definir o modal como ativo.
-	const handleModalOpen = () => {
+	const handleOuterModalOpen = () => {
 		if (!isNotMobile())
 			window.history.pushState(
 				"fake-route",
 				document.title,
 				window.location.href
 			);
-		setModal(true);
+		setOuterModal(true);
+		console.log("outer modal open");
+	};
+
+	const handleInnerModalOpen = () => {
+		if (!isNotMobile())
+			window.history.pushState(
+				"fake-route",
+				document.title,
+				window.location.href
+			);
+		setInnerModal(true);
+		console.log("inner modal open");
+		console.log(isInnerModal);
 	};
 
 	//Ao clicar no 'x', ou fora do modal definir o modal como inativo.
-	const handleModalClose = () => {
+	const handleOuterModalClose = () => {
 		if (!isNotMobile()) window.history.back();
-		setModal(false);
+		setOuterModal(false);
+		console.log("outer modal close");
+	};
+
+	const handleInnerModalClose = () => {
+		if (!isNotMobile()) window.history.back();
+		setInnerModal(false);
+		console.log("inner modal close");
 	};
 
 	const sendImages = () => {
@@ -49,22 +73,45 @@ export function Modal(props: CursoProps) {
 		if (!fileList) return;
 
 		const data = new FormData();
+		data.append("title", props.Curso.Titulo);
+		data.append("folderName", props.Curso.Folder);
+
 		files.forEach((file, index) => {
 			data.append(`file-${index}`, file, file.name);
 		});
 
 		console.log(data);
 		console.log("fetching...");
+
+		fetch("http://cosi.mppr:8080/api/upload", {
+			method: "POST",
+			body: data,
+		})
+			.then((res) => res.json())
+			.then((data) => console.log(data))
+			.catch((err) => console.log(err));
+		window.location.reload();
 	};
 
 	function closeModal() {
-		setModal(false);
+		console.log("closing modal through back button");
+		console.log(isInnerModal, isOuterModal);
+		if (isInnerModal && isOuterModal) {
+			console.log("closing inner modal through back button");
+			setInnerModal(false);
+		} else if (!isInnerModal && isOuterModal) {
+			console.log("closing outer modal through back button");
+			console.log(isInnerModal);
+			console.log(isOuterModal);
+			setOuterModal(false);
+		}
 	}
 
 	function hasFiles() {
 		if (hasFilesUploaded)
 			return (
 				<button
+					name="imageUpload"
 					className="button is-info is-outlined"
 					style={{
 						whiteSpace: "pre-line",
@@ -73,6 +120,29 @@ export function Modal(props: CursoProps) {
 				>
 					Enviar imagens
 				</button>
+			);
+		else return <div></div>;
+	}
+
+	function uploadImagesButton() {
+		if (getCurrentUser())
+			return (
+				<div>
+					<div>&nbsp;</div>
+					<label htmlFor="upload-images">
+						<b>Upload de imagens&nbsp;</b>
+					</label>
+					<input
+						//name="imageUpload"
+						type="file"
+						accept="image/*"
+						id="upload-images"
+						multiple
+						onChange={handleFileUpload}
+					/>
+					{hasFiles()}
+					<div>&nbsp;</div>
+				</div>
 			);
 		else return <div></div>;
 	}
@@ -117,13 +187,21 @@ export function Modal(props: CursoProps) {
 		} else return () => {};
 	}, []);
 
-	const active = isModal ? "is-active" : "";
+	const activeOuter = isOuterModal ? "is-active" : "";
+	const activeInner = isInnerModal ? "is-active" : "";
 
 	//Permite fechar o modal apertando ESC.
 	useEffect(() => {
 		const handleEsc = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
-				setModal(false);
+				console.log("esc");
+				if (isInnerModal && isOuterModal) {
+					console.log("esc inner");
+					setInnerModal(false);
+				} else if (!isInnerModal && isOuterModal) {
+					console.log("esc outer");
+					setOuterModal(false);
+				}
 			}
 		};
 		window.addEventListener("keydown", handleEsc);
@@ -131,10 +209,10 @@ export function Modal(props: CursoProps) {
 		return () => {
 			window.removeEventListener("keydown", handleEsc);
 		};
-	}, []);
+	}, [isInnerModal, isOuterModal]);
 
 	useEffect(() => {
-		if (isModal) {
+		if (isOuterModal) {
 			const cardString = `#modalCard${props.Curso.Index}`;
 			const backgroundString = `#modalBackground${props.Curso.Index}`;
 			const modalCard = document.querySelector(cardString);
@@ -160,7 +238,7 @@ export function Modal(props: CursoProps) {
 				{ opacity: 1, ease: Power4.easeOut }
 			);
 		}
-	}, [isModal, props.Curso.Index]);
+	}, [isOuterModal, props.Curso.Index]);
 
 	const table = () => {
 		if (props.Curso.ListaParticipantes.length > 0)
@@ -181,15 +259,17 @@ export function Modal(props: CursoProps) {
 	// files is not an array, but it's iterable, spread to get an array of files
 	const files = fileList ? [...fileList] : [];
 
+	const modal_padding = innerModalActive ? "0 33%" : "0";
+
 	return (
 		<div className="Modal">
-			<div className={`modal ${active}`}>
+			<div className={`modal ${activeOuter}`}>
 				{/*O handleClick abaixo serve para permitir que o modal
 				possa ser fechado ao clicar fora dele.*/}
 				<div
 					id={`modalBackground${props.Curso.Index}`}
 					className="modal-background"
-					onClick={handleModalClose}
+					onClick={handleOuterModalClose}
 				/>
 				<div
 					id={`modalCard${props.Curso.Index}`}
@@ -208,7 +288,7 @@ export function Modal(props: CursoProps) {
 							{props.Curso.Titulo}
 						</p>
 						<button
-							onClick={handleModalClose}
+							onClick={handleOuterModalClose}
 							className="delete"
 							aria-label="close"
 						/>
@@ -224,20 +304,66 @@ export function Modal(props: CursoProps) {
 						<div>{props.Curso.Imagens}</div>
 
 						{/*put this part inside if_logged_in() */}
-						<div>&nbsp;</div>
-						<label htmlFor="upload-images">
-							<b>Upload de imagens&nbsp;</b>
-						</label>
-						<input
-							type="file"
-							id="upload-images"
-							multiple
-							onChange={handleFileUpload}
-						/>
-						{hasFiles()}
-						<div>&nbsp;</div>
+						{uploadImagesButton()}
+
+						{/*button to open inner modal*/}
+						<div className="buttons is-centered">
+							<button
+								className="button is-info"
+								style={{
+									whiteSpace: "pre-line",
+								}}
+								onClick={handleInnerModalOpen}
+							>
+								Remover imagens
+							</button>
+						</div>
 
 						{table()}
+					</section>
+					<footer
+						className="modal-card-foot"
+						style={{ backgroundColor: "#e6fcfc" }}
+					></footer>
+				</div>
+			</div>
+			<div className={`modal ${activeInner}`}>
+				{/*O handleClick abaixo serve para permitir que o modal
+				possa ser fechado ao clicar fora dele.*/}
+				<div
+					id={`modalBackground${props.Curso.Index}i`}
+					className="modal-background"
+					onClick={handleInnerModalClose}
+				/>
+				<div
+					id={`modalCard${props.Curso.Index}i`}
+					className="modal-card"
+				>
+					<header
+						className="modal-card-head"
+						style={{ backgroundColor: "#e6fcfc" }}
+					>
+						<p
+							className="modal-card-title"
+							style={{
+								whiteSpace: "pre-line",
+							}}
+						>
+							{props.Curso.Titulo}
+						</p>
+						<button
+							onClick={handleInnerModalClose}
+							className="delete"
+							aria-label="close"
+						/>
+					</header>
+					<header style={{ backgroundColor: "#f7f7f7" }}>
+						<p className="modal-card-title my-2">Remover imagens</p>
+					</header>
+					<section className="modal-card-body">
+						<div>{/*props.Curso.Imagens*/}</div>
+
+						{/*put this part inside if_logged_in() */}
 					</section>
 					<footer
 						className="modal-card-foot"
@@ -249,7 +375,7 @@ export function Modal(props: CursoProps) {
 				<div className="columns is-centered">
 					<div className="column is-two-thirds">
 						<div
-							onClick={handleModalOpen}
+							onClick={handleOuterModalOpen}
 							className={
 								"box" + sizeBoxesMobile() + "bhover clickable"
 							}

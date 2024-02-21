@@ -143,6 +143,7 @@ function App() {
 						Cor: "azure",
 						Index: i,
 						Imagem0: img0,
+						Folder: `${item.Index} - ${item.Curso}`,
 					});
 					if (i % 2 === 0) cursosData[i].Cor = "#f7ffff";
 

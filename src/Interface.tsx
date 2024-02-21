@@ -9,6 +9,7 @@ export interface CursoFromJson_old {
 }
 
 export interface CursoFromJson {
+	Index: number;
 	Curso: string;
 	Data: string;
 	Semestre: string;
@@ -46,6 +47,7 @@ export interface Curso {
 	Cor: string;
 	Index: number;
 	Imagem0: string;
+	Folder: string;
 }
 
 export interface CursoArrayProps {
@@ -53,4 +55,8 @@ export interface CursoArrayProps {
 }
 export interface CursoProps {
 	Curso: Curso;
+}
+
+export interface ModalRemoveImgProps extends CursoProps {
+	setIsActive: Function;
 }
