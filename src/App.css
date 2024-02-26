@@ -299,3 +299,10 @@
 		transform: rotate(360deg);
 	}
 }
+
+.img-selected {
+	border: red;
+	border-width: 2px;
+	border-style: solid;
+	border-radius: 5px;
+}

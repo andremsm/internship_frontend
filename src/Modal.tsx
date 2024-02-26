@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 //import { useNavigate } from "react-router-dom";
 import { TweenMax, Power4 } from "gsap";
 import { CursoProps } from "./Interface";
@@ -6,13 +7,12 @@ import {
 	isLongString,
 	sizeBoxesMobile,
 	textoNoticia,
-	isNotMobile,
 	getCurrentUser,
+	authExpiration,
 } from "./Utils";
 import "./LoginModal.css";
 import "./glyphs/style.css";
 import { browserName } from "react-device-detect";
-import { ModalRemoveImg } from "./ModalRemoveImg";
 
 export function Modal(props: CursoProps) {
 	//Para mais informações, ver como o as classes funcionam no site do Bulma,
@@ -22,55 +22,61 @@ export function Modal(props: CursoProps) {
 	const [isInnerModal, setInnerModal] = useState(false);
 	const [fileList, setFileList] = useState<FileList | null>(null);
 	const [hasFilesUploaded, setHasFilesUploaded] = useState(false);
-	const [innerModalActive, setInnerModalActive] = useState(false);
+	//const [innerModalActive, setInnerModalActive] = useState(false);
+
+	const [selectedThumbs, setSelectedThumbs] = useState<Array<string>>([]);
+
+	const [queryParams] = useSearchParams();
+	const navigate = useNavigate();
 
 	const handleFileUpload = (e: any) => {
 		setFileList(e.target.files);
-		console.log(e.target.files);
+		//console.log(e.target.files);
 		if (e.target.files.length !== 0) setHasFilesUploaded(true);
 		else setHasFilesUploaded(false);
 	};
 
 	//Ao clicar no box, definir o modal como ativo.
 	const handleOuterModalOpen = () => {
-		if (!isNotMobile())
-			window.history.pushState(
-				"fake-route",
-				document.title,
-				window.location.href
-			);
+		window.history.pushState(
+			"fake-route",
+			document.title,
+			`?course=${props.Curso.Titulo}`
+		);
 		setOuterModal(true);
-		console.log("outer modal open");
+		//console.log("outer modal open");
 	};
 
 	const handleInnerModalOpen = () => {
-		if (!isNotMobile())
-			window.history.pushState(
-				"fake-route",
-				document.title,
-				window.location.href
-			);
+		window.history.pushState(
+			"fake-route",
+			document.title,
+			`?course=${props.Curso.Titulo}`
+		);
 		setInnerModal(true);
-		console.log("inner modal open");
-		console.log(isInnerModal);
+		//console.log("inner modal open");
+		//console.log(isInnerModal);
 	};
 
 	//Ao clicar no 'x', ou fora do modal definir o modal como inativo.
 	const handleOuterModalClose = () => {
-		if (!isNotMobile()) window.history.back();
-		setOuterModal(false);
-		console.log("outer modal close");
+		window.history.back();
+
+		//console.log("outer modal close");
 	};
 
 	const handleInnerModalClose = () => {
-		if (!isNotMobile()) window.history.back();
-		setInnerModal(false);
-		console.log("inner modal close");
+		window.history.back();
+		setSelectedThumbs([]);
+
+		//console.log("inner modal close");
 	};
 
 	const sendImages = () => {
-		console.log("sending images...");
+		//console.log("sending images...");
 		if (!fileList) return;
+
+		const access_token = authExpiration!() as string;
 
 		const data = new FormData();
 		data.append("title", props.Curso.Titulo);
@@ -80,11 +86,14 @@ export function Modal(props: CursoProps) {
 			data.append(`file-${index}`, file, file.name);
 		});
 
-		console.log(data);
-		console.log("fetching...");
+		//console.log(data);
+		//console.log("fetching...");
 
-		fetch("http://cosi.mppr:8080/api/upload", {
+		fetch("http://cosi.mppr:8080/api/img/upload", {
 			method: "POST",
+			headers: {
+				"x-access-token": access_token,
+			},
 			body: data,
 		})
 			.then((res) => res.json())
@@ -168,24 +177,196 @@ export function Modal(props: CursoProps) {
 		else return <div></div>;
 	}
 
+	const handleSelectThumb = (item: string) => {
+		const check = selectedThumbs.includes(item);
+		if (check) {
+			const updatedList = selectedThumbs.filter(
+				(thumb) => thumb !== item
+			);
+			setSelectedThumbs(updatedList);
+		} else {
+			setSelectedThumbs([...selectedThumbs, item]);
+		}
+	};
+
+	const imgThumbs = () => {
+		const imgTable: any = [];
+		props.Curso.ImagensPath.forEach((item: string, index: number) => {
+			const itemStr = `${props.Curso.Index} - ${props.Curso.Titulo}/${item}`;
+			const isSelected = selectedThumbs.includes(itemStr);
+			imgTable.push(
+				<td
+					key={`imgThumb${props.Curso.Titulo}_${item}`}
+					style={{ padding: "10px" }}
+				>
+					<img
+						src={`img/curso_compressed/${itemStr}`}
+						alt={`${item}`}
+						id={itemStr}
+						className={
+							"clickable " + (isSelected ? "img-selected" : "")
+						}
+						onClick={() => handleSelectThumb(itemStr)}
+					></img>
+				</td>
+			);
+		});
+		return imgTable;
+	};
+
+	const sendRemoveImages = () => {
+		//console.log(selectedThumbs);
+		//console.log("sending images to delete...");
+		if (selectedThumbs.length < 1) {
+			//console.log("fail");
+			return;
+		}
+
+		const access_token = authExpiration!() as string;
+
+		const data = new FormData();
+		data.append("title", props.Curso.Titulo);
+		data.append("folderName", props.Curso.Folder);
+		data.append(
+			"imageList",
+			JSON.stringify(
+				selectedThumbs.map((item) => {
+					return item.split("/").slice(-1);
+				})
+			)
+		);
+
+		//console.log(data);
+		//console.log("fetching...");
+
+		fetch("http://cosi.mppr:8080/api/img/delete", {
+			method: "POST",
+			headers: {
+				"x-access-token": access_token,
+			},
+			body: data,
+		})
+			.then((res) => res.json())
+			.then((data) => console.log(data))
+			.catch((err) => console.log(err));
+
+		handleInnerModalClose();
+		handleOuterModalClose();
+		window.location.reload();
+	};
+
+	const removeImagesModal = () => {
+		if (getCurrentUser())
+			return (
+				<div className={`modal ${activeInner}`}>
+					{/*O handleClick abaixo serve para permitir que o modal
+					possa ser fechado ao clicar fora dele.*/}
+					<div
+						id={`modalBackground${props.Curso.Index}i`}
+						className="modal-background"
+						onClick={handleInnerModalClose}
+					/>
+					<div
+						id={`modalCard${props.Curso.Index}i`}
+						className="modal-card"
+					>
+						<header
+							className="modal-card-head"
+							style={{ backgroundColor: "#e6fcfc" }}
+						>
+							<p
+								className="modal-card-title"
+								style={{
+									whiteSpace: "pre-line",
+								}}
+							>
+								{props.Curso.Titulo}
+							</p>
+							<button
+								onClick={handleInnerModalClose}
+								className="delete"
+								aria-label="close"
+							/>
+						</header>
+						<header style={{ backgroundColor: "#f7f7f7" }}>
+							<p className="modal-card-title my-2">
+								Remover imagens
+							</p>
+						</header>
+						<section className="modal-card-body">
+							<table className="buttons is-centered">
+								<tbody>
+									<tr>{imgThumbs()}</tr>
+								</tbody>
+							</table>
+
+							<div className="buttons is-centered">
+								<button
+									className="button is-info"
+									style={{
+										whiteSpace: "pre-line",
+									}}
+									onClick={sendRemoveImages}
+								>
+									Remover imagens
+								</button>
+							</div>
+
+							{/*put this part inside if_logged_in() */}
+						</section>
+						<footer
+							className="modal-card-foot"
+							style={{ backgroundColor: "#e6fcfc" }}
+						></footer>
+					</div>
+				</div>
+			);
+		else return <div></div>;
+	};
+
+	const removeImagesButton = () => {
+		if (getCurrentUser() && props.Curso.ImagensPath.length > 0)
+			return (
+				<div className="buttons is-centered">
+					<button
+						className="button is-info"
+						style={{
+							whiteSpace: "pre-line",
+						}}
+						onClick={handleInnerModalOpen}
+					>
+						Remover imagens
+					</button>
+				</div>
+			);
+		else return <div></div>;
+	};
+
 	//Permite fechar o modal pressionando "Voltar" no navegador.
 	useEffect(() => {
 		//Mobile only.
-		if (!isNotMobile()) {
+		if (true) {
+			const handleBack = () => {
+				if (isInnerModal && isOuterModal) setInnerModal(false);
+				else if (!isInnerModal && isOuterModal) setOuterModal(false);
+			};
+
 			// Add a fake history event so that the back button does nothing if pressed once
 
-			window.addEventListener("popstate", closeModal);
+			window.addEventListener("popstate", handleBack);
 
 			// Here is the cleanup when this component unmounts
 			return () => {
-				window.removeEventListener("popstate", closeModal);
+				window.removeEventListener("popstate", handleBack);
 				// If we left without using the back button, aka by using a button on the page, we need to clear out that fake history event
 				if (window.history.state === "fake-route") {
-					window.history.back();
+					// this was previously working, but now it doesn't for some reason
+					// this might lead to some problems
+					//window.history.back();
 				}
 			};
 		} else return () => {};
-	}, []);
+	}, [isInnerModal, isOuterModal]);
 
 	const activeOuter = isOuterModal ? "is-active" : "";
 	const activeInner = isInnerModal ? "is-active" : "";
@@ -194,13 +375,13 @@ export function Modal(props: CursoProps) {
 	useEffect(() => {
 		const handleEsc = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
-				console.log("esc");
+				//console.log("esc");
 				if (isInnerModal && isOuterModal) {
-					console.log("esc inner");
-					setInnerModal(false);
+					//console.log("esc inner");
+					window.history.back();
 				} else if (!isInnerModal && isOuterModal) {
-					console.log("esc outer");
-					setOuterModal(false);
+					//console.log("esc outer");
+					window.history.back();
 				}
 			}
 		};
@@ -210,6 +391,21 @@ export function Modal(props: CursoProps) {
 			window.removeEventListener("keydown", handleEsc);
 		};
 	}, [isInnerModal, isOuterModal]);
+
+	useEffect(() => {
+		const courseURL = queryParams.get("course");
+		//console.log(courseURL);
+		if (courseURL === props.Curso.Titulo) {
+			navigate("/", { replace: true });
+			window.history.pushState(
+				"fake-route",
+				document.title,
+				`?course=${props.Curso.Titulo}`
+			);
+			//handleOuterModalOpen();
+			setOuterModal(true);
+		}
+	}, []);
 
 	useEffect(() => {
 		if (isOuterModal) {
@@ -259,11 +455,14 @@ export function Modal(props: CursoProps) {
 	// files is not an array, but it's iterable, spread to get an array of files
 	const files = fileList ? [...fileList] : [];
 
-	const modal_padding = innerModalActive ? "0 33%" : "0";
+	//const modal_padding = innerModalActive ? "0 33%" : "0";
 
 	return (
 		<div className="Modal">
-			<div className={`modal ${activeOuter}`}>
+			<div
+				className={`modal ${activeOuter}`}
+				id={`idModalMain${props.Curso.Index}`}
+			>
 				{/*O handleClick abaixo serve para permitir que o modal
 				possa ser fechado ao clicar fora dele.*/}
 				<div
@@ -307,17 +506,7 @@ export function Modal(props: CursoProps) {
 						{uploadImagesButton()}
 
 						{/*button to open inner modal*/}
-						<div className="buttons is-centered">
-							<button
-								className="button is-info"
-								style={{
-									whiteSpace: "pre-line",
-								}}
-								onClick={handleInnerModalOpen}
-							>
-								Remover imagens
-							</button>
-						</div>
+						{removeImagesButton()}
 
 						{table()}
 					</section>
@@ -327,50 +516,9 @@ export function Modal(props: CursoProps) {
 					></footer>
 				</div>
 			</div>
-			<div className={`modal ${activeInner}`}>
-				{/*O handleClick abaixo serve para permitir que o modal
-				possa ser fechado ao clicar fora dele.*/}
-				<div
-					id={`modalBackground${props.Curso.Index}i`}
-					className="modal-background"
-					onClick={handleInnerModalClose}
-				/>
-				<div
-					id={`modalCard${props.Curso.Index}i`}
-					className="modal-card"
-				>
-					<header
-						className="modal-card-head"
-						style={{ backgroundColor: "#e6fcfc" }}
-					>
-						<p
-							className="modal-card-title"
-							style={{
-								whiteSpace: "pre-line",
-							}}
-						>
-							{props.Curso.Titulo}
-						</p>
-						<button
-							onClick={handleInnerModalClose}
-							className="delete"
-							aria-label="close"
-						/>
-					</header>
-					<header style={{ backgroundColor: "#f7f7f7" }}>
-						<p className="modal-card-title my-2">Remover imagens</p>
-					</header>
-					<section className="modal-card-body">
-						<div>{/*props.Curso.Imagens*/}</div>
+			{/*inner modal*/}
+			{removeImagesModal()}
 
-						{/*put this part inside if_logged_in() */}
-					</section>
-					<footer
-						className="modal-card-foot"
-						style={{ backgroundColor: "#e6fcfc" }}
-					></footer>
-				</div>
-			</div>
 			<div className="block mx-6 mb-0">
 				<div className="columns is-centered">
 					<div className="column is-two-thirds">
