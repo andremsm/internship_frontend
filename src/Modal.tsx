@@ -29,11 +29,15 @@ export function Modal(props: CursoProps) {
 	const [queryParams] = useSearchParams();
 	const navigate = useNavigate();
 
-	const handleFileUpload = (e: any) => {
+	const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFileList(e.target.files);
 		//console.log(e.target.files);
+		if (!e.target.files || e.target.files.length === 0) {
+			setHasFilesUploaded(false);
+			return;
+		}
 		if (e.target.files.length !== 0) setHasFilesUploaded(true);
-		else setHasFilesUploaded(false);
+		//else setHasFilesUploaded(false);
 	};
 
 	//Ao clicar no box, definir o modal como ativo.
@@ -60,6 +64,7 @@ export function Modal(props: CursoProps) {
 
 	//Ao clicar no 'x', ou fora do modal definir o modal como inativo.
 	const handleOuterModalClose = () => {
+		console.log(window.history);
 		window.history.back();
 
 		//console.log("outer modal close");
@@ -99,9 +104,12 @@ export function Modal(props: CursoProps) {
 			.then((res) => res.json())
 			.then((data) => console.log(data))
 			.catch((err) => console.log(err));
+		window.history.back();
+		navigate("/", { replace: true });
 		window.location.reload();
 	};
 
+	/*
 	function closeModal() {
 		console.log("closing modal through back button");
 		console.log(isInnerModal, isOuterModal);
@@ -115,6 +123,7 @@ export function Modal(props: CursoProps) {
 			setOuterModal(false);
 		}
 	}
+	*/
 
 	function hasFiles() {
 		if (hasFilesUploaded)
@@ -190,6 +199,27 @@ export function Modal(props: CursoProps) {
 	};
 
 	const imgThumbs = () => {
+		return props.Curso.ImagensPath.map((item: string, index: number) => {
+			const itemStr = `${props.Curso.Index} - ${props.Curso.Titulo}/${item}`;
+			const isSelected = selectedThumbs.includes(itemStr);
+			return (
+				<td
+					key={`imgThumb${props.Curso.Titulo}_${item}`}
+					style={{ padding: "10px" }}
+				>
+					<img
+						src={`img/curso_compressed/${itemStr}`}
+						alt={`${item}`}
+						id={itemStr}
+						className={
+							"clickable " + (isSelected ? "img-selected" : "")
+						}
+						onClick={() => handleSelectThumb(itemStr)}
+					></img>
+				</td>
+			);
+		});
+		/*
 		const imgTable: any = [];
 		props.Curso.ImagensPath.forEach((item: string, index: number) => {
 			const itemStr = `${props.Curso.Index} - ${props.Curso.Titulo}/${item}`;
@@ -212,6 +242,7 @@ export function Modal(props: CursoProps) {
 			);
 		});
 		return imgTable;
+		*/
 	};
 
 	const sendRemoveImages = () => {
@@ -250,8 +281,9 @@ export function Modal(props: CursoProps) {
 			.then((data) => console.log(data))
 			.catch((err) => console.log(err));
 
-		handleInnerModalClose();
-		handleOuterModalClose();
+		window.history.back();
+		window.history.back();
+		navigate("/", { replace: true });
 		window.location.reload();
 	};
 
@@ -405,7 +437,8 @@ export function Modal(props: CursoProps) {
 			//handleOuterModalOpen();
 			setOuterModal(true);
 		}
-	}, []);
+		// empty dependency array means this effect will only run once (like componentDidMount in classes)
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
 		if (isOuterModal) {

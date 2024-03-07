@@ -15,21 +15,19 @@ import {
 } from "./Utils";
 import { ReactComponent as Triskele } from "./glyphs/triskele.svg";
 import "bulma/css/bulma.css";
-//Se App.css for aqui, itens da lista possuem sombra, mas animação de hover
-//não funciona (não testei isso após mudar um pouco o css com mais de sombras).
 import "bulma/css/bulma.min.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "./App.css";
 
 function App() {
-	//Todos os cursos.
-	const [cursosTable, setCursosTable] = useState<Array<React.ReactElement>>(
+	// All Courses
+	const [courseTable, setCourseTable] = useState<Array<React.ReactElement>>(
 		[]
 	);
-	//Últimos 5 cursos.
-	const [cursosRecentes, setCursosRecentes] = useState<Array<Curso>>([]);
-	//Variável para evitar crash, ver fim de useEffect{}.
+	// Last 5 courses
+	const [recentCourses, setRecentCourses] = useState<Array<Curso>>([]);
+	// Variable to avoid crashes (more info at the end of the useEffect)
 	const [loading, setLoading] = useState(true);
 
 	const [loggedIn, setLoggedIn] = useState(true);
@@ -39,7 +37,6 @@ function App() {
 
 		const access_token = authExpiration()!;
 
-		//Versão otimizada.
 		fetch("http://cosi.mppr:8080/api/test/admin", {
 			headers: {
 				"Content-type": "application/json; charset=UTF-8",
@@ -52,92 +49,90 @@ function App() {
 				return response.json();
 			})
 			.then((jsonFile) => {
-				//Eu preferiria não ter usado esse require aqui, mas o
-				//LazyLoadImage se recusa a aceitar imagens da forma
-				//./img/curso/Curso Exemplo/img.jpg na parte de placeholders.
-				//true é para buscar recursivamente em todos os
-				//diretórios.
-				const contexto = require.context(
+				// LazyLoadImage does not accept images as string paths
+				// (./img/curso/Curso Exemplo/img.jpg), as placeholders
+				const context = require.context(
 					"../public/img/curso_compressed",
-					true,
+					true, // Search recursively
 					/\.(png|jpe?g|svg)$/
 				);
-				//Transformar o contexto em algo que o LazyLoadImage aceite.
-				const placeholders = importAll(contexto);
+				// Turn context into something that LazyLoadImage will accept
+				const placeholders = importAll(context);
 
-				//Lista de Modals.
-				const updatedCursosTable: Array<React.ReactElement> = [];
-				//Lista com as informações de cada curso.
-				const cursosData: Array<Curso> = [];
+				// Modal list
+				const updatedCourseTable: Array<React.ReactElement> = [];
+				// Course data list
+				const coursesData: Array<Curso> = [];
 
 				let placeholder_index = 0;
 				let i = 0;
 				let k = -1;
-				//Iterar por cada curso recebido do .json
+				// Iterate through each course
 				jsonFile.forEach((item: CursoFromJson, jsonIndex: number) => {
-					const listaParticipantes: Array<React.ReactElement> = [];
-					if (item.Participantes) {
-						item.Participantes.forEach(
-							(p: Participante, index: number) => {
-								listaParticipantes.push(
-									<tr
-										key={
-											"p" +
-											jsonIndex.toString() +
-											index.toString()
-										}
-									>
-										<td>{p.Nome}</td>
-										<td>{p.Unidade}</td>
-									</tr>
-								);
-							}
-						);
-					}
+					// Get participant list, if logged in
+					const participantList = item.Participantes
+						? item.Participantes.map(
+								(p: Participante, index: number) => {
+									return (
+										<tr
+											key={
+												"p" +
+												jsonIndex.toString() +
+												index.toString()
+											}
+										>
+											<td>{p.Nome}</td>
+											<td>{p.Unidade}</td>
+										</tr>
+									);
+								}
+						  )
+						: [];
 
 					let img0 = "";
-					const listaImagens: Array<React.ReactElement> = [];
-					item.Imagens.forEach((img: string, index: number) => {
-						const imgSrc =
-							"/img/curso/" +
-							i.toString() +
-							" - " +
-							item.Curso +
-							"/" +
-							img;
-						if (index === 0) img0 = imgSrc;
-						const placeholder: string = placeholders[
-							placeholder_index
-						] as string;
-						placeholder_index++;
-						listaImagens.push(
-							<LazyLoadImage
-								key={index.toString() + img}
-								src={imgSrc}
-								placeholderSrc={placeholder}
-								width={widthIfMobile()}
-								height={heightIfMobile()}
-								effect="blur"
-								alt=""
-								loading="lazy"
-							></LazyLoadImage>
-						);
-					});
+					// Get image list, if this course has images
+					const imageList = item.Imagens
+						? item.Imagens.map((img: string, index: number) => {
+								const imgSrc =
+									"/img/curso/" +
+									i.toString() +
+									" - " +
+									item.Curso +
+									"/" +
+									img;
+								if (index === 0) img0 = imgSrc;
+								const placeholder: string = placeholders[
+									placeholder_index
+								] as string;
+								placeholder_index++;
+								return (
+									<LazyLoadImage
+										key={index.toString() + img}
+										src={imgSrc}
+										placeholderSrc={placeholder}
+										width={widthIfMobile()}
+										height={heightIfMobile()}
+										effect="blur"
+										alt=""
+										loading="lazy"
+									></LazyLoadImage>
+								);
+						  })
+						: [];
 
 					if (!img0) {
 						img0 = "/img/no_image.png";
 					}
 
-					let titulo = item.Curso;
-					cursosData.push({
-						Titulo: titulo,
+					coursesData.push({
+						Titulo: item.Curso,
 						Data: item.Data,
 						Semestre: item.Semestre,
 						Instrutor: item.Instrutor,
 						Participantes: item.NumeroParticipantes,
-						ListaParticipantes: listaParticipantes,
+						ListaParticipantes: participantList,
 						ListaParticipantesDados: item.Participantes,
-						Imagens: listaImagens,
+						Imagens: imageList,
 						ImagensPath: item.Imagens,
 						Noticia: item.Noticia,
 						Cor: "azure",
@@ -145,63 +140,59 @@ function App() {
 						Imagem0: img0,
 						Folder: `${item.Index} - ${item.Curso}`,
 					});
-					if (i % 2 === 0) cursosData[i].Cor = "#f7ffff";
+					if (i % 2 === 0) coursesData[i].Cor = "#f7ffff";
 
-					//Isso aqui provavelmente tem que mudar, fiz só pra ter
-					//uma separação simples entre semestres.
+					// Simple separation between semesters
 					if (k !== -1)
-						if (item.Semestre !== cursosData[k].Semestre)
-							updatedCursosTable.push(
-								<div key={cursosData[k].Semestre}>
+						if (item.Semestre !== coursesData[k].Semestre)
+							updatedCourseTable.push(
+								<div key={coursesData[k].Semestre}>
 									<div>&nbsp;</div>
 									<div>
 										<strong>
 											{"Semestre: " +
-												cursosData[k].Semestre}
+												coursesData[k].Semestre}
 										</strong>
 									</div>
 								</div>
 							);
 
-					//Inserir um elemento na lista, com as informações coletadas
-					//até aqui (Curso={item}).
-					updatedCursosTable.push(
+					// Append new modal to the list, using the information
+					// gathered for this course
+					updatedCourseTable.push(
 						<Modal
-							Curso={cursosData[i]}
+							Curso={coursesData[i]}
 							key={"modal" + jsonIndex.toString()}
 						></Modal>
 					);
 					i++;
 					k++;
 				});
-				//Inserir atualização que ficou faltando nos semestres
-				//(novamente, tem que mudar isso).
-				updatedCursosTable.push(
-					<div key={cursosData[cursosData.length - 1].Semestre}>
+				// Append one last separator
+				updatedCourseTable.push(
+					<div key={coursesData[coursesData.length - 1].Semestre}>
 						<strong>
 							{"Semestre: " +
-								cursosData[cursosData.length - 1].Semestre}
+								coursesData[coursesData.length - 1].Semestre}
 						</strong>
 					</div>
 				);
-				//Inserir os últimos 5 cursos da lista de cursos em uma
-				//outra lista de cursos mais recentes (essa lista é usada
-				//no scroll das imagens dos cursos mais recentes).
+				// Create another list containing the last five courses
+				// (this will be used in the image scroller)
 				i--;
 				const j = i - 5;
-				const tempCursosRecentes: Array<Curso> = [];
+				const tempLastCourses: Array<Curso> = [];
 				for (i; i > j; i--) {
-					tempCursosRecentes.push(cursosData[i]);
+					tempLastCourses.push(coursesData[i]);
 				}
-				setCursosRecentes(tempCursosRecentes);
-				//Cursos vão estar do mais antigo ao mais recente, então
-				//é preciso inverter a lista.
-				setCursosTable(updatedCursosTable.reverse());
-				//Enquanto essa função ainda não houver terminado a execução,
-				//se o React tentar renderizar simple_slider com cursosRecentes
-				//definido como um array vazio, vai crashar a página. Então
-				//é necessário um if que verifica o valor dessa variável,
-				//para decidir se será impresso um texto de loading ou o slider.
+				setRecentCourses(tempLastCourses);
+				// Courses will be sorted from the oldest to the newest,
+				// need to reverse the list
+				setCourseTable(updatedCourseTable.reverse());
+				// While this useEffect has not finished running, React will
+				// try to render the image scroller using an empty array,
+				// which will cause the webpage to crash. This variable
+				// prevents that by making it display a loading text instead
 				if (access_token === undefined) setLoggedIn(false);
 				setLoading(false);
 			});
@@ -209,10 +200,10 @@ function App() {
 		// empty dependency array means this effect will only run once (like componentDidMount in classes)
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const simple_slider = <SimpleSlider Cursos={cursosRecentes}></SimpleSlider>;
+	const simple_slider = <SimpleSlider Cursos={recentCourses}></SimpleSlider>;
 	return (
 		<div className="App">
-			{/*Parte de cima da página (header).*/}
+			{/*header*/}
 			<div className="block">
 				<section className="section">
 					<div className="container">
@@ -255,7 +246,7 @@ function App() {
 					)}
 				</section>
 			</div>
-			{/*Slider dos 5 cursos mais recentes.*/}
+			{/*Image scroller with the last five courses*/}
 			<div className="block">
 				<div className="card is-shadowless">
 					<div className="card-image sliderBackground">
@@ -264,7 +255,7 @@ function App() {
 							onClick={() => setLoading(false)}
 						>
 							{
-								/*Ver linha 196.*/
+								/*See line 194.*/
 								loading
 									? "carregando... caso demore demais, clique"
 									: simple_slider
@@ -274,10 +265,8 @@ function App() {
 				</div>
 			</div>
 
-			{/*Boxes com os cursos.*/}
-			{cursosTable}
+			{courseTable}
 
-			{/*Triskele e fim da página.*/}
 			<div className="triskele">
 				<Triskele />
 			</div>

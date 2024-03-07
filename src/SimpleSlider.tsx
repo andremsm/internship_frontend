@@ -20,12 +20,11 @@ export function SimpleSlider(props: CursoArrayProps) {
 
 	//Ao clicar no box, definir o modal como ativo.
 	const handleModalOpen = (m: number) => {
-		if (!isNotMobile())
-			window.history.pushState(
-				"fake-route",
-				document.title,
-				window.location.href
-			);
+		window.history.pushState(
+			"fake-route",
+			document.title,
+			`?course=${props.Cursos[m].Titulo}`
+		);
 		const modalCopy = [...isModal];
 		modalCopy[m] = true;
 		setModal(modalCopy);
@@ -33,7 +32,7 @@ export function SimpleSlider(props: CursoArrayProps) {
 
 	//Ao clicar no 'x', ou fora do modal definir o modal como inativo.
 	const handleModalClose = (m: number) => {
-		if (!isNotMobile()) window.history.back();
+		window.history.back();
 		const modalCopy = [...isModal];
 		modalCopy[m] = false;
 		setModal(modalCopy);
@@ -54,7 +53,7 @@ export function SimpleSlider(props: CursoArrayProps) {
 		if (props.Cursos[e].Noticia)
 			return (
 				<a
-					href={props.Cursos[0].Noticia}
+					href={props.Cursos[e].Noticia}
 					target="_blank"
 					rel="noopener noreferrer"
 				>
@@ -74,7 +73,7 @@ export function SimpleSlider(props: CursoArrayProps) {
 	//Permite fechar o modal pressionando "Voltar" no navegador.
 	useEffect(() => {
 		//Mobile only.
-		if (!isNotMobile()) {
+		if (true) {
 			// Add a fake history event so that the back button does nothing if pressed once
 
 			window.addEventListener("popstate", closeModal);
@@ -136,6 +135,7 @@ export function SimpleSlider(props: CursoArrayProps) {
 		const handleEsc = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
 				const modalFalse = Array(5).fill(false);
+				window.history.back();
 				setModal(modalFalse);
 			}
 		};

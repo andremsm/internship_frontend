@@ -2,17 +2,18 @@ import axios from "axios";
 import { browserName } from "react-device-detect";
 
 export function isLongString(s: string, font: string, origin: number) {
-	//Função para alinhar o texto do box horizontalmente. Sem isso os boxes
-	//ficam com tamanho irregular, dependendo do tamanho do título do curso.
-	//Títulos muito grandes ainda assim tornam o tamanho irregular, mas
-	//isso aqui é suficiente para os cursos até 06/10/2022.
-	//A variável origin é para saber qual texto está sendo alinhado,
-	//0 é o título do curso, valores diferentes disso não.
+	// Align the box's text horizontally. Without this the boxes have an
+	// irregular size, depending on the length of the course's title
+	// Longer titles still "break" the sizing, but this should be enough
+	// for all courses up to 06/10/2022
+	// Origin  = 0: title
+	// Origin != 0: anything else
 	const canvas = document.createElement("canvas");
 	let context: CanvasRenderingContext2D;
 	context = canvas.getContext("2d")!;
 	//								^^^
-	//O ponto de exclamação acima serve pra não dar erro de possivelmente null
+	// The above exclamation mark's purpose is to prevent typescript from
+	// throwing an error due to getContext possibly returning null
 
 	context.font = font || getComputedStyle(document.body).font;
 
@@ -31,6 +32,7 @@ export function isLongString(s: string, font: string, origin: number) {
 	}
 }
 
+/*
 export function isLongModalTitle(s: string) {
 	//Função rápida para verificar se é preciso mudar o título para caber
 	//no box e no modal. Se o tamanho da string é maior que 138 (não em
@@ -54,12 +56,17 @@ export function isLongModalTitle(s: string) {
 	}
 	return false;
 }
+*/
 
 export function deconstructString(
 	s: string,
 	context: CanvasRenderingContext2D,
 	width: number
 ) {
+	/***********
+	 * OBSOLETE *
+	 ***********/
+
 	//Após um tempo eu descobri que isso tudo era desnecessário e só
 	//precisava resetar o flex-shrink.
 
@@ -144,6 +151,10 @@ export function deconstructString(
 }
 
 export function changeTitle(s: string) {
+	/***********
+	 * OBSOLETE *
+	 ***********/
+
 	//Após um tempo eu descobri que isso tudo era desnecessário e só
 	//precisava resetar o flex-shrink.
 
@@ -211,30 +222,30 @@ export function changeTitle(s: string) {
 }
 
 export function isNotMobile() {
-	//Função rápida para verificar o tamanho da tela da qual está sendo visto
-	//o site. Se é menor que 500 é um celular, caso contrário PC.
+	// Determines if the current device is a phone, based on screen width
 	if (window.screen.width < 500) {
 		return false;
 	} else return true;
 }
 
 export function sizeBoxesMobile() {
-	//Função rápida para deixar os boxes um pouco menores no PC.
+	// Makes boxes a bit smaller on pc
 	if (isNotMobile()) return " mx-6 px-6 ";
 	else return " ";
 }
 
 export function importAll(r: __WebpackModuleApi.RequireContext) {
-	//Esse negócio é engraçado, quando você importa todas as imagens vem
-	//numa ordem estranha porque ordena baseado na string do diretório,
-	//então fica algo do tipo [0,0,0,1,1,1,10,10,10,11,11,11,12,12,12,...].
-	//Pra arrumar isso precisa dessa função no .sort()
+	// When you import all images, they come sorted lexicographically
+	// (for example: [0, 0, 0, 1, 1, 1, 10, 10, 10, 11, 11, 11, 12, 12...]),
+	// instead of being sorted based on the number at the beginning of the
+	// folder's title. This sorts them correctly
 	const keys = r.keys();
-	//console.log(keys);
 	keys.sort(function compareFn(a: string, b: string) {
-		//+ -> transformar string em int.
-		const a_int = +a.slice(2, a.indexOf(" "));
-		const b_int = +b.slice(2, b.indexOf(" "));
+		//const a_int = +a.slice(2, a.indexOf(" "));
+		//const b_int = +b.slice(2, b.indexOf(" "));
+		// + -> string to int
+		const a_int = +a.split(" - ")[0];
+		const b_int = +b.split(" - ")[0];
 		if (a_int < b_int) {
 			return -1;
 		}
@@ -244,7 +255,6 @@ export function importAll(r: __WebpackModuleApi.RequireContext) {
 		// a must be equal to b
 		return 0;
 	});
-	//console.log(keys);
 
 	return keys.map(r);
 }
@@ -265,7 +275,8 @@ export function isLongModalButton(s: string) {
 	let context: CanvasRenderingContext2D;
 	context = canvas.getContext("2d")!;
 	//								^^^
-	//O ponto de exclamação acima serve pra não dar erro de possivelmente null
+	// The above exclamation mark's purpose is to prevent typescript from
+	// throwing an error due to getContext possibly returning null
 
 	context.font = "Nunito" || getComputedStyle(document.body).font;
 
