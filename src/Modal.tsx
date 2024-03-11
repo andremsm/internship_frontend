@@ -392,7 +392,8 @@ export function Modal(props: CursoProps) {
 				window.removeEventListener("popstate", handleBack);
 				// If we left without using the back button, aka by using a button on the page, we need to clear out that fake history event
 				if (window.history.state === "fake-route") {
-					// this was previously working, but now it doesn't for some reason
+					// this was previously working, but now it doesn't for
+					// some reason
 					// this might lead to some problems
 					//window.history.back();
 				}
@@ -406,15 +407,9 @@ export function Modal(props: CursoProps) {
 	//Permite fechar o modal apertando ESC.
 	useEffect(() => {
 		const handleEsc = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				//console.log("esc");
-				if (isInnerModal && isOuterModal) {
-					//console.log("esc inner");
-					window.history.back();
-				} else if (!isInnerModal && isOuterModal) {
-					//console.log("esc outer");
-					window.history.back();
-				}
+			if (event.key === "Escape" && (isInnerModal || isOuterModal)) {
+				console.log("esc");
+				window.history.back();
 			}
 		};
 		window.addEventListener("keydown", handleEsc);
