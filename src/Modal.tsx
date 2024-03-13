@@ -3,16 +3,15 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 //import { useNavigate } from "react-router-dom";
 import { TweenMax, Power4 } from "gsap";
 import { CursoProps } from "./Interface";
-import {
-	isLongString,
-	sizeBoxesMobile,
-	textoNoticia,
-	getCurrentUser,
-	authExpiration,
-} from "./Utils";
+import { isLongString, sizeBoxesMobile } from "./Utils";
 import "./LoginModal.css";
 import "./glyphs/style.css";
 import { browserName } from "react-device-detect";
+import { RemoveImagesButton } from "./RemoveImagesButton";
+import { UploadImagesButton } from "./UploadImagesButton";
+import { RemoveImagesModal } from "./RemoveImagesModal";
+import { ParticipantsTable } from "./ParticipantsTable";
+import { News } from "./News";
 
 export function Modal(props: CursoProps) {
 	//Para mais informações, ver como o as classes funcionam no site do Bulma,
@@ -28,17 +27,6 @@ export function Modal(props: CursoProps) {
 
 	const [queryParams] = useSearchParams();
 	const navigate = useNavigate();
-
-	const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setFileList(e.target.files);
-		//console.log(e.target.files);
-		if (!e.target.files || e.target.files.length === 0) {
-			setHasFilesUploaded(false);
-			return;
-		}
-		if (e.target.files.length !== 0) setHasFilesUploaded(true);
-		//else setHasFilesUploaded(false);
-	};
 
 	//Ao clicar no box, definir o modal como ativo.
 	const handleOuterModalOpen = () => {
@@ -77,303 +65,6 @@ export function Modal(props: CursoProps) {
 		//console.log("inner modal close");
 	};
 
-	const sendImages = () => {
-		//console.log("sending images...");
-		if (!fileList) return;
-
-		const access_token = authExpiration!() as string;
-
-		const data = new FormData();
-		data.append("title", props.Curso.Titulo);
-		data.append("folderName", props.Curso.Folder);
-
-		files.forEach((file, index) => {
-			data.append(`file-${index}`, file, file.name);
-		});
-
-		//console.log(data);
-		//console.log("fetching...");
-
-		fetch("http://cosi.mppr:8080/api/img/upload", {
-			method: "POST",
-			headers: {
-				"x-access-token": access_token,
-			},
-			body: data,
-		})
-			.then((res) => res.json())
-			.then((data) => console.log(data))
-			.catch((err) => console.log(err));
-		window.history.back();
-		navigate("/", { replace: true });
-		window.location.reload();
-	};
-
-	/*
-	function closeModal() {
-		console.log("closing modal through back button");
-		console.log(isInnerModal, isOuterModal);
-		if (isInnerModal && isOuterModal) {
-			console.log("closing inner modal through back button");
-			setInnerModal(false);
-		} else if (!isInnerModal && isOuterModal) {
-			console.log("closing outer modal through back button");
-			console.log(isInnerModal);
-			console.log(isOuterModal);
-			setOuterModal(false);
-		}
-	}
-	*/
-
-	function hasFiles() {
-		if (hasFilesUploaded)
-			return (
-				<button
-					name="imageUpload"
-					className="button is-info is-outlined"
-					style={{
-						whiteSpace: "pre-line",
-					}}
-					onClick={sendImages}
-				>
-					Enviar imagens
-				</button>
-			);
-		else return <div></div>;
-	}
-
-	function uploadImagesButton() {
-		if (getCurrentUser())
-			return (
-				<div>
-					<div>&nbsp;</div>
-					<label htmlFor="upload-images">
-						<b>Upload de imagens&nbsp;</b>
-					</label>
-					<input
-						//name="imageUpload"
-						type="file"
-						accept="image/*"
-						id="upload-images"
-						multiple
-						onChange={handleFileUpload}
-					/>
-					{hasFiles()}
-					<div>&nbsp;</div>
-				</div>
-			);
-		else return <div></div>;
-	}
-
-	function hasNews() {
-		if (props.Curso.Noticia)
-			return (
-				<a
-					href={props.Curso.Noticia}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<button
-						className="button is-info is-outlined"
-						style={{
-							whiteSpace: "pre-line",
-						}}
-					>
-						{textoNoticia()}
-					</button>
-				</a>
-			);
-		else return <div></div>;
-	}
-
-	const handleSelectThumb = (item: string) => {
-		const check = selectedThumbs.includes(item);
-		if (check) {
-			const updatedList = selectedThumbs.filter(
-				(thumb) => thumb !== item
-			);
-			setSelectedThumbs(updatedList);
-		} else {
-			setSelectedThumbs([...selectedThumbs, item]);
-		}
-	};
-
-	const imgThumbs = () => {
-		return props.Curso.ImagensPath.map((item: string, index: number) => {
-			const itemStr = `${props.Curso.Index} - ${props.Curso.Titulo}/${item}`;
-			const isSelected = selectedThumbs.includes(itemStr);
-			return (
-				<td
-					key={`imgThumb${props.Curso.Titulo}_${item}`}
-					style={{ padding: "10px" }}
-				>
-					<img
-						src={`img/curso_compressed/${itemStr}`}
-						alt={`${item}`}
-						id={itemStr}
-						className={
-							"clickable " + (isSelected ? "img-selected" : "")
-						}
-						onClick={() => handleSelectThumb(itemStr)}
-					></img>
-				</td>
-			);
-		});
-		/*
-		const imgTable: any = [];
-		props.Curso.ImagensPath.forEach((item: string, index: number) => {
-			const itemStr = `${props.Curso.Index} - ${props.Curso.Titulo}/${item}`;
-			const isSelected = selectedThumbs.includes(itemStr);
-			imgTable.push(
-				<td
-					key={`imgThumb${props.Curso.Titulo}_${item}`}
-					style={{ padding: "10px" }}
-				>
-					<img
-						src={`img/curso_compressed/${itemStr}`}
-						alt={`${item}`}
-						id={itemStr}
-						className={
-							"clickable " + (isSelected ? "img-selected" : "")
-						}
-						onClick={() => handleSelectThumb(itemStr)}
-					></img>
-				</td>
-			);
-		});
-		return imgTable;
-		*/
-	};
-
-	const sendRemoveImages = () => {
-		//console.log(selectedThumbs);
-		//console.log("sending images to delete...");
-		if (selectedThumbs.length < 1) {
-			//console.log("fail");
-			return;
-		}
-
-		const access_token = authExpiration!() as string;
-
-		const data = new FormData();
-		data.append("title", props.Curso.Titulo);
-		data.append("folderName", props.Curso.Folder);
-		data.append(
-			"imageList",
-			JSON.stringify(
-				selectedThumbs.map((item) => {
-					return item.split("/").slice(-1);
-				})
-			)
-		);
-
-		//console.log(data);
-		//console.log("fetching...");
-
-		fetch("http://cosi.mppr:8080/api/img/delete", {
-			method: "POST",
-			headers: {
-				"x-access-token": access_token,
-			},
-			body: data,
-		})
-			.then((res) => res.json())
-			.then((data) => console.log(data))
-			.catch((err) => console.log(err));
-
-		window.history.back();
-		window.history.back();
-		navigate("/", { replace: true });
-		window.location.reload();
-	};
-
-	const removeImagesModal = () => {
-		if (getCurrentUser())
-			return (
-				<div className={`modal ${activeInner}`}>
-					{/*O handleClick abaixo serve para permitir que o modal
-					possa ser fechado ao clicar fora dele.*/}
-					<div
-						id={`modalBackground${props.Curso.Index}i`}
-						className="modal-background"
-						onClick={handleInnerModalClose}
-					/>
-					<div
-						id={`modalCard${props.Curso.Index}i`}
-						className="modal-card"
-					>
-						<header
-							className="modal-card-head"
-							style={{ backgroundColor: "#e6fcfc" }}
-						>
-							<p
-								className="modal-card-title"
-								style={{
-									whiteSpace: "pre-line",
-								}}
-							>
-								{props.Curso.Titulo}
-							</p>
-							<button
-								onClick={handleInnerModalClose}
-								className="delete"
-								aria-label="close"
-							/>
-						</header>
-						<header style={{ backgroundColor: "#f7f7f7" }}>
-							<p className="modal-card-title my-2">
-								Remover imagens
-							</p>
-						</header>
-						<section className="modal-card-body">
-							<table className="buttons is-centered">
-								<tbody>
-									<tr>{imgThumbs()}</tr>
-								</tbody>
-							</table>
-
-							<div className="buttons is-centered">
-								<button
-									className="button is-info"
-									style={{
-										whiteSpace: "pre-line",
-									}}
-									onClick={sendRemoveImages}
-								>
-									Remover imagens
-								</button>
-							</div>
-
-							{/*put this part inside if_logged_in() */}
-						</section>
-						<footer
-							className="modal-card-foot"
-							style={{ backgroundColor: "#e6fcfc" }}
-						></footer>
-					</div>
-				</div>
-			);
-		else return <div></div>;
-	};
-
-	const removeImagesButton = () => {
-		if (getCurrentUser() && props.Curso.ImagensPath.length > 0)
-			return (
-				<div className="buttons is-centered">
-					<button
-						className="button is-info"
-						style={{
-							whiteSpace: "pre-line",
-						}}
-						onClick={handleInnerModalOpen}
-					>
-						Remover imagens
-					</button>
-				</div>
-			);
-		else return <div></div>;
-	};
-
 	//Permite fechar o modal pressionando "Voltar" no navegador.
 	useEffect(() => {
 		//Mobile only.
@@ -408,7 +99,7 @@ export function Modal(props: CursoProps) {
 	useEffect(() => {
 		const handleEsc = (event: KeyboardEvent) => {
 			if (event.key === "Escape" && (isInnerModal || isOuterModal)) {
-				console.log("esc");
+				console.log("esc_modal");
 				window.history.back();
 			}
 		};
@@ -423,6 +114,7 @@ export function Modal(props: CursoProps) {
 		const courseURL = queryParams.get("course");
 		//console.log(courseURL);
 		if (courseURL === props.Curso.Titulo) {
+			console.log(courseURL);
 			navigate("/", { replace: true });
 			window.history.pushState(
 				"fake-route",
@@ -464,24 +156,8 @@ export function Modal(props: CursoProps) {
 		}
 	}, [isOuterModal, props.Curso.Index]);
 
-	const table = () => {
-		if (props.Curso.ListaParticipantes.length > 0)
-			return (
-				<table className="table is-fullwidth is-hoverable">
-					<thead>
-						<tr>
-							<th className="has-text-centered">Nome</th>
-							<th className="has-text-centered">Unidade</th>
-						</tr>
-					</thead>
-					<tbody>{props.Curso.ListaParticipantes}</tbody>
-				</table>
-			);
-		else return <div></div>;
-	};
-
 	// files is not an array, but it's iterable, spread to get an array of files
-	const files = fileList ? [...fileList] : [];
+	//const files = fileList ? [...fileList] : [];
 
 	//const modal_padding = innerModalActive ? "0 33%" : "0";
 
@@ -526,17 +202,32 @@ export function Modal(props: CursoProps) {
 						</p>
 					</header>
 					<section className="modal-card-body">
-						<div className="buttons is-centered">{hasNews()}</div>
+						<div className="buttons is-centered">
+							<News URL={props.Curso.Noticia} />
+						</div>
 
 						<div>{props.Curso.Imagens}</div>
 
 						{/*put this part inside if_logged_in() */}
-						{uploadImagesButton()}
+						<UploadImagesButton
+							setFileList={setFileList}
+							setHasFilesUploaded={setHasFilesUploaded}
+							hasFilesUploaded={hasFilesUploaded}
+							title={props.Curso.Titulo}
+							folder={props.Curso.Folder}
+							fileList={fileList}
+							navigate={navigate}
+						/>
 
 						{/*button to open inner modal*/}
-						{removeImagesButton()}
+						<RemoveImagesButton
+							handleInnerModalOpen={handleInnerModalOpen}
+							length={props.Curso.ImagensPath.length}
+						/>
 
-						{table()}
+						<ParticipantsTable
+							ParticipantList={props.Curso.ListaParticipantes}
+						/>
 					</section>
 					<footer
 						className="modal-card-foot"
@@ -545,7 +236,17 @@ export function Modal(props: CursoProps) {
 				</div>
 			</div>
 			{/*inner modal*/}
-			{removeImagesModal()}
+			<RemoveImagesModal
+				handleInnerModalClose={handleInnerModalClose}
+				setSelectedThumbs={setSelectedThumbs}
+				activeInner={activeInner}
+				index={props.Curso.Index}
+				title={props.Curso.Titulo}
+				folder={props.Curso.Folder}
+				ImagensPath={props.Curso.ImagensPath}
+				selectedThumbs={selectedThumbs}
+				navigate={navigate}
+			/>
 
 			<div className="block mx-6 mb-0">
 				<div className="columns is-centered">

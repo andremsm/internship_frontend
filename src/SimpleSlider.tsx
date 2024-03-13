@@ -2,16 +2,43 @@ import { useState, useEffect } from "react";
 import { TweenMax, Power4 } from "gsap";
 import Slider from "react-slick";
 import { CursoArrayProps } from "./Interface";
-import { textoNoticia, isNotMobile } from "./Utils";
 import { browserName } from "react-device-detect";
 import "./LoginModal.css";
 import "./glyphs/style.css";
+import { News } from "./News";
+import { ParticipantsTable } from "./ParticipantsTable";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { UploadImagesButton } from "./UploadImagesButton";
+import { RemoveImagesModal } from "./RemoveImagesModal";
+import { getCurrentUser } from "./Utils";
 
 export function SimpleSlider(props: CursoArrayProps) {
 	//Provavelmente isso aqui poderia ter sido melhor feito, mas como seriam
 	//sempre 5 imagens no slider, foi mais fácil fazer assim.
 
-	const [isModal, setModal] = useState([false]);
+	const [isModal, setModal] = useState([false, false, false, false, false]);
+
+	const [isInnerModal, setInnerModal] = useState([
+		false,
+		false,
+		false,
+		false,
+		false,
+	]);
+	const [isOuterModal, setOuterModal] = useState([
+		false,
+		false,
+		false,
+		false,
+		false,
+	]);
+
+	const [fileList, setFileList] = useState<FileList | null>(null);
+	const [hasFilesUploaded, setHasFilesUploaded] = useState(false);
+	const [selectedThumbs, setSelectedThumbs] = useState<Array<string>>([]);
+
+	const [queryParams] = useSearchParams();
+	const navigate = useNavigate();
 
 	//Ao clicar no box, definir o modal como ativo.
 	//Ao clicar no 'x', ou fora do modal definir o modal como inativo.
@@ -25,7 +52,7 @@ export function SimpleSlider(props: CursoArrayProps) {
 			document.title,
 			`?course=${props.Cursos[m].Titulo}`
 		);
-		const modalCopy = [...isModal];
+		const modalCopy = Array(5).fill(false);
 		modalCopy[m] = true;
 		setModal(modalCopy);
 	};
@@ -33,41 +60,72 @@ export function SimpleSlider(props: CursoArrayProps) {
 	//Ao clicar no 'x', ou fora do modal definir o modal como inativo.
 	const handleModalClose = (m: number) => {
 		window.history.back();
-		const modalCopy = [...isModal];
+		const modalCopy = Array(5).fill(false);
 		modalCopy[m] = false;
 		setModal(modalCopy);
 	};
 
-	const active1 = isModal[0] ? "is-active" : "";
-	const active2 = isModal[1] ? "is-active" : "";
-	const active3 = isModal[2] ? "is-active" : "";
-	const active4 = isModal[3] ? "is-active" : "";
-	const active5 = isModal[4] ? "is-active" : "";
+	const handleOuterModalOpen = (i: number) => {
+		window.history.pushState(
+			"fake-route",
+			document.title,
+			`?course=${props.Cursos[i].Titulo}`
+		);
+		const modalCopy = Array(5).fill(false);
+		modalCopy[i] = true;
+		setOuterModal(modalCopy);
+		//console.log("outer modal open");
+	};
+
+	const handleInnerModalOpen = (i: number) => {
+		window.history.pushState(
+			"fake-route",
+			document.title,
+			`?course=${props.Cursos[i].Titulo}`
+		);
+		const modalCopy = Array(5).fill(false);
+		modalCopy[i] = true;
+		setInnerModal(modalCopy);
+		//console.log("inner modal open");
+		//console.log(isInnerModal);
+	};
+
+	const handleOuterModalClose = () => {
+		window.history.back();
+	};
+
+	const handleInnerModalClose = () => {
+		window.history.back();
+		//setSelectedThumbs([]);
+	};
+
+	const active = [
+		isModal[0] ? "is-active" : "",
+		isModal[1] ? "is-active" : "",
+		isModal[2] ? "is-active" : "",
+		isModal[3] ? "is-active" : "",
+		isModal[4] ? "is-active" : "",
+	];
+
+	const activeInner = [
+		isInnerModal[0] ? "is-active" : "",
+		isInnerModal[1] ? "is-active" : "",
+		isInnerModal[2] ? "is-active" : "",
+		isInnerModal[3] ? "is-active" : "",
+		isInnerModal[4] ? "is-active" : "",
+	];
+
+	const activeOuter = [
+		isOuterModal[0] ? "is-active" : "",
+		isOuterModal[1] ? "is-active" : "",
+		isOuterModal[2] ? "is-active" : "",
+		isOuterModal[3] ? "is-active" : "",
+		isOuterModal[4] ? "is-active" : "",
+	];
 
 	function closeModal() {
 		const modalFalse = Array(5).fill(false);
 		setModal(modalFalse);
-	}
-
-	function hasNews(e: number) {
-		if (props.Cursos[e].Noticia)
-			return (
-				<a
-					href={props.Cursos[e].Noticia}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<button
-						className="button is-info is-outlined"
-						style={{
-							whiteSpace: "pre-line",
-						}}
-					>
-						{textoNoticia()}
-					</button>
-				</a>
-			);
-		else return <div></div>;
 	}
 
 	//Permite fechar o modal pressionando "Voltar" no navegador.
@@ -75,19 +133,29 @@ export function SimpleSlider(props: CursoArrayProps) {
 		//Mobile only.
 		if (true) {
 			// Add a fake history event so that the back button does nothing if pressed once
+			const handleBack = () => {
+				console.log("back");
+				if (isInnerModal.includes(true) && isOuterModal.includes(true))
+					setInnerModal([false, false, false, false, false]);
+				else if (
+					!isInnerModal.includes(true) &&
+					isOuterModal.includes(true)
+				)
+					setOuterModal([false, false, false, false, false]);
+			};
 
-			window.addEventListener("popstate", closeModal);
+			window.addEventListener("popstate", handleBack);
 
 			// Here is the cleanup when this component unmounts
 			return () => {
-				window.removeEventListener("popstate", closeModal);
+				window.removeEventListener("popstate", handleBack);
 				// If we left without using the back button, aka by using a button on the page, we need to clear out that fake history event
 				if (window.history.state === "fake-route") {
-					window.history.back();
+					//window.history.back();
 				}
 			};
 		} else return () => {};
-	}, []);
+	}, [isInnerModal, isOuterModal]);
 
 	useEffect(() => {
 		let modalCard: Element | null = null;
@@ -134,9 +202,13 @@ export function SimpleSlider(props: CursoArrayProps) {
 	useEffect(() => {
 		const handleEsc = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
-				const modalFalse = Array(5).fill(false);
+				if (isInnerModal.includes(true))
+					setInnerModal([false, false, false, false, false]);
+				else if (isOuterModal.includes(true))
+					setOuterModal([false, false, false, false, false]);
+				//const modalFalse = Array(5).fill(false);
 				window.history.back();
-				setModal(modalFalse);
+				//setModal(modalFalse);
 			}
 		};
 		window.addEventListener("keydown", handleEsc);
@@ -144,251 +216,132 @@ export function SimpleSlider(props: CursoArrayProps) {
 		return () => {
 			window.removeEventListener("keydown", handleEsc);
 		};
-	}, []);
+	}, [isInnerModal, isOuterModal]);
 
-	const table = (i: number) => {
-		if (props.Cursos[i].ListaParticipantes.length > 0)
+	const removeImagesButton = (i: number) => {
+		if (getCurrentUser() && props.Cursos[i].ImagensPath.length > 0)
 			return (
-				<table className="table is-fullwidth is-hoverable">
-					<thead>
-						<tr>
-							<th className="has-text-centered">Nome</th>
-							<th className="has-text-centered">Unidade</th>
-						</tr>
-					</thead>
-					<tbody>{props.Cursos[i].ListaParticipantes}</tbody>
-				</table>
+				<div className="buttons is-centered">
+					<button
+						className="button is-info"
+						style={{
+							whiteSpace: "pre-line",
+						}}
+						onClick={() => handleInnerModalOpen(i)}
+					>
+						Remover imagens
+					</button>
+				</div>
 			);
 		else return <div></div>;
 	};
 
+	const modal = (i: number) => {
+		return (
+			<div>
+				<div className={`modal ${activeOuter[i]}`}>
+					<div
+						id={`modalBackgroundSlider${i}`}
+						className="modal-background"
+						onClick={() => {
+							handleOuterModalClose();
+						}}
+					/>
+					<div id={`modalCardSlider${i}`} className="modal-card">
+						<header
+							className="modal-card-head"
+							style={{ backgroundColor: "#e6fcfc" }}
+						>
+							<p
+								className="modal-card-title"
+								style={{
+									whiteSpace: "pre-line",
+								}}
+							>
+								{props.Cursos[i].Titulo}
+							</p>
+							<button
+								onClick={() => {
+									handleOuterModalClose();
+								}}
+								className="delete"
+								aria-label="close"
+							/>
+						</header>
+						<header style={{ backgroundColor: "#f7f7f7" }}>
+							<p className="modal-card-title my-2">
+								Instrutor: {props.Cursos[i].Instrutor}
+							</p>
+						</header>
+						<section className="modal-card-body">
+							<div className="buttons is-centered">
+								<News URL={props.Cursos[i].Noticia} />
+							</div>
+							<div>{props.Cursos[i].Imagens}</div>
+
+							{/*put this part inside if_logged_in() */}
+							<UploadImagesButton
+								setFileList={setFileList}
+								setHasFilesUploaded={setHasFilesUploaded}
+								hasFilesUploaded={hasFilesUploaded}
+								title={props.Cursos[i].Titulo}
+								folder={props.Cursos[i].Folder}
+								fileList={fileList}
+								navigate={navigate}
+							/>
+
+							{removeImagesButton(i)}
+
+							<ParticipantsTable
+								ParticipantList={
+									props.Cursos[i].ListaParticipantes
+								}
+							/>
+						</section>
+						<footer
+							className="modal-card-foot"
+							style={{ backgroundColor: "#e6fcfc" }}
+						></footer>
+					</div>
+				</div>
+				{/*inner modal*/}
+				<RemoveImagesModal
+					handleInnerModalClose={handleInnerModalClose}
+					setSelectedThumbs={setSelectedThumbs}
+					activeInner={activeInner[i]}
+					index={props.Cursos[i].Index}
+					title={props.Cursos[i].Titulo}
+					folder={props.Cursos[i].Folder}
+					ImagensPath={props.Cursos[i].ImagensPath}
+					selectedThumbs={selectedThumbs}
+					navigate={navigate}
+				/>
+			</div>
+		);
+	};
+
+	const sliderImg = (i: number) => {
+		return (
+			<div>
+				<img
+					style={{ cursor: "pointer" }}
+					src={props.Cursos[i].Imagem0}
+					alt=""
+					onClick={() => {
+						handleOuterModalOpen(i);
+					}}
+				></img>
+			</div>
+		);
+	};
+
 	return (
 		<div className="Modal">
-			<div className={`modal ${active1}`}>
-				<div
-					id="modalBackgroundSlider0"
-					className="modal-background"
-					onClick={() => {
-						handleModalClose(0);
-					}}
-				/>
-				<div id="modalCardSlider0" className="modal-card">
-					<header
-						className="modal-card-head"
-						style={{ backgroundColor: "#e6fcfc" }}
-					>
-						<p
-							className="modal-card-title"
-							style={{
-								whiteSpace: "pre-line",
-							}}
-						>
-							{props.Cursos[0].Titulo}
-						</p>
-						<button
-							onClick={() => {
-								handleModalClose(0);
-							}}
-							className="delete"
-							aria-label="close"
-						/>
-					</header>
-					<header style={{ backgroundColor: "#f7f7f7" }}>
-						<p className="modal-card-title my-2">
-							Instrutor: {props.Cursos[0].Instrutor}
-						</p>
-					</header>
-					<section className="modal-card-body">
-						<div className="buttons is-centered">{hasNews(0)}</div>
-						<div>{props.Cursos[0].Imagens}</div>
-						{table(0)}
-					</section>
-					<footer
-						className="modal-card-foot"
-						style={{ backgroundColor: "#e6fcfc" }}
-					></footer>
-				</div>
-			</div>
-			<div className={`modal ${active2}`}>
-				<div
-					id="modalBackgroundSlider1"
-					className="modal-background"
-					onClick={() => {
-						handleModalClose(1);
-					}}
-				/>
-				<div id="modalCardSlider1" className="modal-card">
-					<header
-						className="modal-card-head"
-						style={{ backgroundColor: "#e6fcfc" }}
-					>
-						<p
-							className="modal-card-title"
-							style={{
-								whiteSpace: "pre-line",
-							}}
-						>
-							{props.Cursos[1].Titulo}
-						</p>
-						<button
-							onClick={() => {
-								handleModalClose(1);
-							}}
-							className="delete"
-							aria-label="close"
-						/>
-					</header>
-					<header style={{ backgroundColor: "#f7f7f7" }}>
-						<p className="modal-card-title my-2">
-							Instrutor: {props.Cursos[1].Instrutor}
-						</p>
-					</header>
-					<section className="modal-card-body">
-						<div className="buttons is-centered">{hasNews(1)}</div>
-						<div>{props.Cursos[1].Imagens}</div>
-						{table(1)}
-					</section>
-					<footer
-						className="modal-card-foot"
-						style={{ backgroundColor: "#e6fcfc" }}
-					></footer>
-				</div>
-			</div>
-			<div className={`modal ${active3}`}>
-				<div
-					id="modalBackgroundSlider2"
-					className="modal-background"
-					onClick={() => {
-						handleModalClose(2);
-					}}
-				/>
-				<div id="modalCardSlider2" className="modal-card">
-					<header
-						className="modal-card-head"
-						style={{ backgroundColor: "#e6fcfc" }}
-					>
-						<p
-							className="modal-card-title"
-							style={{
-								whiteSpace: "pre-line",
-							}}
-						>
-							{props.Cursos[2].Titulo}
-						</p>
-						<button
-							onClick={() => {
-								handleModalClose(2);
-							}}
-							className="delete"
-							aria-label="close"
-						/>
-					</header>
-					<header style={{ backgroundColor: "#f7f7f7" }}>
-						<p className="modal-card-title my-2">
-							Instrutor: {props.Cursos[2].Instrutor}
-						</p>
-					</header>
-					<section className="modal-card-body">
-						<div className="buttons is-centered">{hasNews(2)}</div>
-						<div>{props.Cursos[2].Imagens}</div>
-						{table(2)}
-					</section>
-					<footer
-						className="modal-card-foot"
-						style={{ backgroundColor: "#e6fcfc" }}
-					></footer>
-				</div>
-			</div>
-			<div className={`modal ${active4}`}>
-				<div
-					id="modalBackgroundSlider3"
-					className="modal-background"
-					onClick={() => {
-						handleModalClose(3);
-					}}
-				/>
-				<div id="modalCardSlider3" className="modal-card">
-					<header
-						className="modal-card-head"
-						style={{ backgroundColor: "#e6fcfc" }}
-					>
-						<p
-							className="modal-card-title"
-							style={{
-								whiteSpace: "pre-line",
-							}}
-						>
-							{props.Cursos[3].Titulo}
-						</p>
-						<button
-							onClick={() => {
-								handleModalClose(3);
-							}}
-							className="delete"
-							aria-label="close"
-						/>
-					</header>
-					<header style={{ backgroundColor: "#f7f7f7" }}>
-						<p className="modal-card-title my-2">
-							Instrutor: {props.Cursos[3].Instrutor}
-						</p>
-					</header>
-					<section className="modal-card-body">
-						<div className="buttons is-centered">{hasNews(3)}</div>
-						<div>{props.Cursos[3].Imagens}</div>
-						{table(3)}
-					</section>
-					<footer
-						className="modal-card-foot"
-						style={{ backgroundColor: "#e6fcfc" }}
-					></footer>
-				</div>
-			</div>
-			<div className={`modal ${active5}`}>
-				<div
-					id="modalBackgroundSlider4"
-					className="modal-background"
-					onClick={() => {
-						handleModalClose(4);
-					}}
-				/>
-				<div id="modalCardSlider4" className="modal-card">
-					<header
-						className="modal-card-head"
-						style={{ backgroundColor: "#e6fcfc" }}
-					>
-						<p
-							className="modal-card-title"
-							style={{
-								whiteSpace: "pre-line",
-							}}
-						>
-							{props.Cursos[4].Titulo}
-						</p>
-						<button
-							onClick={() => {
-								handleModalClose(4);
-							}}
-							className="delete"
-							aria-label="close"
-						/>
-					</header>
-					<header style={{ backgroundColor: "#f7f7f7" }}>
-						<p className="modal-card-title my-2">
-							Instrutor: {props.Cursos[4].Instrutor}
-						</p>
-					</header>
-					<section className="modal-card-body">
-						<div className="buttons is-centered">{hasNews(4)}</div>
-						<div>{props.Cursos[4].Imagens}</div>
-						{table(4)}
-					</section>
-					<footer
-						className="modal-card-foot"
-						style={{ backgroundColor: "#e6fcfc" }}
-					></footer>
-				</div>
-			</div>
+			{modal(0)}
+			{modal(1)}
+			{modal(2)}
+			{modal(3)}
+			{modal(4)}
 			<Slider
 				autoplay={true}
 				dots={true}
@@ -397,56 +350,11 @@ export function SimpleSlider(props: CursoArrayProps) {
 				slidesToShow={1}
 				slidesToScroll={1}
 			>
-				<div>
-					<img
-						style={{ cursor: "pointer" }}
-						src={props.Cursos[0].Imagem0}
-						alt=""
-						onClick={() => {
-							handleModalOpen(0);
-						}}
-					></img>
-				</div>
-				<div>
-					<img
-						style={{ cursor: "pointer" }}
-						src={props.Cursos[1].Imagem0}
-						alt=""
-						onClick={() => {
-							handleModalOpen(1);
-						}}
-					></img>
-				</div>
-				<div>
-					<img
-						style={{ cursor: "pointer" }}
-						src={props.Cursos[2].Imagem0}
-						alt=""
-						onClick={() => {
-							handleModalOpen(2);
-						}}
-					></img>
-				</div>
-				<div>
-					<img
-						style={{ cursor: "pointer" }}
-						src={props.Cursos[3].Imagem0}
-						alt=""
-						onClick={() => {
-							handleModalOpen(3);
-						}}
-					></img>
-				</div>
-				<div>
-					<img
-						style={{ cursor: "pointer" }}
-						src={props.Cursos[4].Imagem0}
-						alt=""
-						onClick={() => {
-							handleModalOpen(4);
-						}}
-					></img>
-				</div>
+				{sliderImg(0)}
+				{sliderImg(1)}
+				{sliderImg(2)}
+				{sliderImg(3)}
+				{sliderImg(4)}
 			</Slider>
 		</div>
 	);

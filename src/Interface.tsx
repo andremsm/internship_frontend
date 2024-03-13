@@ -1,3 +1,5 @@
+import { NavigateFunction } from "react-router-dom";
+
 export interface CursoFromJson_old {
 	Curso: string;
 	Nome: string;
@@ -57,6 +59,40 @@ export interface CursoProps {
 	Curso: Curso;
 }
 
-export interface ModalRemoveImgProps extends CursoProps {
-	setIsActive: Function;
+export interface ModalRemoveImgProps {
+	handleInnerModalOpen: () => void;
+	length: number;
+}
+
+export interface ModalUploadImgProps {
+	setFileList: (fl: FileList | null) => void;
+	setHasFilesUploaded: (hf: boolean) => void;
+	hasFilesUploaded: boolean;
+	title: string;
+	folder: string;
+	fileList: FileList | null;
+	navigate: NavigateFunction;
+}
+
+export interface RmvImgsModalProps {
+	handleInnerModalClose: () => void;
+	setSelectedThumbs: (thumbs: Array<string>) => void;
+	activeInner: string;
+	index: number;
+	title: string;
+	folder: string;
+	ImagensPath: Array<string>;
+	selectedThumbs: Array<string>;
+	navigate: NavigateFunction;
+}
+
+export interface ParticipantsTableProps {
+	ParticipantList: React.ReactElement<
+		any,
+		string | React.JSXElementConstructor<any>
+	>[];
+}
+
+export interface NewsProps {
+	URL: string;
 }
