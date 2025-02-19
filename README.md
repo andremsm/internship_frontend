@@ -1,5 +1,7 @@
 This frontend allows users to view a list of past courses. When a course is clicked, it displays detailed information such as images from the course and the name of the instructor. The application also includes an admin login feature, and if logged in as an admin, additional details such as a list of attendees for each course are shown.
 
+Contains two branches, main and experimental. The difference between them is that the experimental branch has some additional features like adding and removing images through the frontend, besides the updater Python app.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
