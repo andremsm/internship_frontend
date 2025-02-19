@@ -2,6 +2,8 @@ This frontend allows users to view a list of past courses. When a course is clic
 
 Contains two branches, main and experimental. The difference between them is that the experimental branch has some additional features like adding and removing images through the frontend, besides the updater Python app.
 
+The mongodb.json file can be used to feed the database with some sample courses.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
