@@ -1,3 +1,5 @@
+This frontend allows users to view a list of past courses. When a course is clicked, it displays detailed information such as images from the course and the name of the instructor. The application also includes an admin login feature, and if logged in as an admin, additional details such as a list of attendees for each course are shown.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

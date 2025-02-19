@@ -19,6 +19,7 @@
 /build*
 
 # misc
+/src/email.html
 .DS_Store
 .env.local
 .env.development.local
